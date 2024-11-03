@@ -66,10 +66,10 @@ func cleanGlob(pattern string) {
 
 func buildSteamLanguage() {
 	print("# Building Steam Language")
-	exePath := "./GoSteamLanguageGenerator/bin/Debug/GoSteamLanguageGenerator.exe"
+	exePath := "./GoSteamLanguageGenerator/obj/x86/Debug/net8.0/GoSteamLanguageGenerator.dll"
 
 	if runtime.GOOS != "windows" {
-		execute("mono", exePath, "./SteamKit", "../protocol/steamlang")
+		execute("dotnet", exePath, "./SteamKit", "../protocol/steamlang")
 	} else {
 		execute(exePath, "./SteamKit", "../protocol/steamlang")
 	}

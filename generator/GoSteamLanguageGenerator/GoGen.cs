@@ -41,7 +41,7 @@ namespace GoSteamLanguageGenerator
 			sb.AppendLine("    \"fmt\"");
 			sb.AppendLine(")");
 			sb.AppendLine();
-			foreach (Node n in root.childNodes) {
+			foreach (Node n in root.ChildNodes) {
 				EmitEnumNode(n as EnumNode, sb);
 			}
 		}
@@ -63,7 +63,7 @@ namespace GoSteamLanguageGenerator
 			sb.AppendLine(")");
 			sb.AppendLine();
 
-			foreach (Node n in root.childNodes) {
+			foreach (Node n in root.ChildNodes) {
 				EmitClassNode(n as ClassNode, sb);
 			}
 		}
@@ -105,11 +105,11 @@ namespace GoSteamLanguageGenerator
 
 			sb.AppendLine("const (");
 			bool first = true;
-			foreach (PropNode prop in enode.childNodes) {
+			foreach (PropNode prop in enode.ChildNodes) {
 				string val = String.Join(" | ", prop.Default.Select(item => {
 					var name = EmitSymbol(item);
 					// if this is an element of this enum, make sure to prefix it with its name
-					return (enode.childNodes.Exists(node => node.Name == name) ? enode.Name + "_" : "") + name;
+					return (enode.ChildNodes.Exists(node => node.Name == name) ? enode.Name + "_" : "") + name;
 				}));
 
 				sb.Append("    " + enode.Name + "_" + prop.Name + " " + enode.Name + " = " + val);
@@ -140,7 +140,7 @@ namespace GoSteamLanguageGenerator
 			var uniqueNodes = new List<PropNode>();
 			{
 				var allValues = new List<long>();
-				foreach (var node in enode.childNodes) {
+				foreach (var node in enode.ChildNodes) {
 					if (!(node is PropNode))
 						continue;
 					var prop = node as PropNode;
@@ -194,7 +194,7 @@ namespace GoSteamLanguageGenerator
 					}
 					n = Convert.ToInt64(val, bas);
 				} else {
-					var otherNode = enode.childNodes.Single(o => o is PropNode && (o as PropNode).Name == val) as PropNode;
+					var otherNode = enode.ChildNodes.Single(o => o is PropNode && (o as PropNode).Name == val) as PropNode;
 					n = EvalEnum(enode, otherNode);
 				}
 				number = number | n;
@@ -216,10 +216,10 @@ namespace GoSteamLanguageGenerator
 		{
 			Func<PropNode, string> emitElement = node => cnode.Name + "_" + node.Name + " " + EmitType(node.Type) + " = " + EmitType(node.Default.FirstOrDefault());
 
-			var statics = cnode.childNodes.Where(node => node is PropNode && (node as PropNode).Flags == "const");
+			var statics = cnode.ChildNodes.Where(node => node is PropNode && (node as PropNode).Flags == "const");
 
 			if (statics.Count() == 1) {
-				sb.AppendLine("const " + emitElement(cnode.childNodes[0] as PropNode));
+				sb.AppendLine("const " + emitElement(cnode.ChildNodes[0] as PropNode));
 				sb.AppendLine();
 				return;
 			}
@@ -241,7 +241,7 @@ namespace GoSteamLanguageGenerator
 		private void EmitClassDef(ClassNode cnode, StringBuilder sb)
 		{
 			sb.AppendLine("type " + cnode.Name + " struct {");
-			foreach (PropNode node in cnode.childNodes) {
+			foreach (PropNode node in cnode.ChildNodes) {
 				if (node.Flags == "const") {
 					continue;
 				} else if (node.Flags == "boolmarshal" && EmitSymbol(node.Type) == "byte") {
@@ -268,7 +268,7 @@ namespace GoSteamLanguageGenerator
 		{
 			sb.AppendLine("func New" + cnode.Name + "() *" + cnode.Name + " {");
 			sb.AppendLine("    return &" + cnode.Name + "{");
-			foreach (PropNode node in cnode.childNodes) {
+			foreach (PropNode node in cnode.ChildNodes) {
 				string ctor = null;
 				Symbol firstDefault = node.Default.FirstOrDefault();
 				if (node.Flags == "const") {
@@ -310,7 +310,7 @@ namespace GoSteamLanguageGenerator
 			int tempNum = 0;
 			sb.AppendLine("func (d *" + cnode.Name + ") Serialize(w io.Writer) error {");
 			sb.AppendLine("    var err error");
-			foreach (PropNode node in cnode.childNodes) {
+			foreach (PropNode node in cnode.ChildNodes) {
 				if (node.Flags == "proto") {
 					sb.AppendLine("    buf" + tempNum + ", err := proto.Marshal(d." + GetUpperName(node.Name) + ")");
 					sb.AppendLine("    if err != nil { return err }");
@@ -323,7 +323,7 @@ namespace GoSteamLanguageGenerator
 					tempNum++;
 				}
 			}
-			foreach (PropNode node in cnode.childNodes) {
+			foreach (PropNode node in cnode.ChildNodes) {
 				if (node.Flags == "const") {
 					continue;
 				} else if (node.Flags == "boolmarshal") {
@@ -339,7 +339,7 @@ namespace GoSteamLanguageGenerator
 				} else {
 					sb.AppendLine("    err = binary.Write(w, binary.LittleEndian, d." + GetUpperName(node.Name) + ")");
 				}
-				if (node != cnode.childNodes[cnode.childNodes.Count - 1])
+				if (node != cnode.ChildNodes[cnode.ChildNodes.Count - 1])
 					sb.AppendLine("    if err != nil { return err }");
 			}
 			sb.AppendLine("    return err");
@@ -352,7 +352,7 @@ namespace GoSteamLanguageGenerator
 			int tempNum = 0;
 			sb.AppendLine("func (d *" + cnode.Name + ") Deserialize(r io.Reader) error {");
 			sb.AppendLine("    var err error");
-			foreach (PropNode node in cnode.childNodes) {
+			foreach (PropNode node in cnode.ChildNodes) {
 				if (node.Flags == "const") {
 					continue;
 				} else if (node.Flags == "boolmarshal") {
@@ -392,14 +392,14 @@ namespace GoSteamLanguageGenerator
 						sb.AppendLine("    d." + GetUpperName(node.Name) + ", err = rwu.Read" + GetUpperName(type) + "(r)");
 					} else {
 						sb.AppendLine("    t" + tempNum + ", err := rwu.Read" + GetUpperName(enumTypes[type]) + "(r)");
-						if (node != cnode.childNodes[cnode.childNodes.Count - 1])
+						if (node != cnode.ChildNodes[cnode.ChildNodes.Count - 1])
 							sb.AppendLine("    if err != nil { return err }");
 						sb.AppendLine("    d." + GetUpperName(node.Name) + " = " + type + "(t" + tempNum + ")");
 						tempNum++;
 						continue;
 					}
 				}
-				if (node != cnode.childNodes[cnode.childNodes.Count - 1])
+				if (node != cnode.ChildNodes[cnode.ChildNodes.Count - 1])
 					sb.AppendLine("    if err != nil { return err }");
 			}
 			sb.AppendLine("    return err");
